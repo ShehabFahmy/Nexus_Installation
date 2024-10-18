@@ -1,22 +1,66 @@
 pipeline {
     agent { label 'master' }
     stages {
-        stage('Launch Ansible-and-Nexus Agent'){
-            steps {
-                dir('/home/Installing-Nexus-using-Jenkins-Ansible-and-Terraform/Terraform') {
-                    // Use Terraform to create the AWS infrastructure
-                    sh 'terraform init'
-                    sh 'terraform apply -auto-approve'
-                }
-            }
-        }
+        // stage('Launch Ansible-and-Nexus Agent'){
+        //     steps {
+        //         // In the terraform directory
+        //         dir('/home/Installing-Nexus-using-Jenkins-Ansible-and-Terraform/Terraform') {
+        //             // Use Terraform to create the AWS infrastructure
+        //             sh 'terraform init'
+        //             sh 'terraform apply -auto-approve'
+        //         }
+        //     }
+        // }
         
         stage('Push to GitHub') {
             steps {
-                // Clone the GitHub repository using the SSH credentials
-                git branch: "${GIT_BRANCH}",
-                    url: "${GIT_REPO}",
-                    credentialsId: 'your-ssh-credentials-id'  // Use the ID of your SSH credentials
+                dir('/home/Installing-Nexus-using-Jenkins-Ansible-and-Terraform') {
+                    withCredentials([sshUserPrivateKey(credentialsId: "my-ssh-key", keyFileVariable: 'SSH_KEY')]) {
+                        // Configure the directory as a safe directory
+                        sh 'git config --global --add safe.directory /home/Installing-Nexus-using-Jenkins-Ansible-and-Terraform'
+
+                        // Set user name and email for Git
+                        sh 'git config --global user.email "shehabmostafa2323@gmail.com"'
+                        sh 'git config --global user.name "ShehabFahmy"'
+
+                        sh '''
+                            git add Ansible/
+                            git commit -m "Running Pipeline - ${JOB_NAME} - Build #${BUILD_NUMBER}"
+                            
+                            export GIT_SSH_COMMAND="ssh -i ${SSH_KEY} -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
+
+                            # Push the changes using the custom SSH command
+                            git push git@github.com:ShehabFahmy/Nexus_Installation.git main
+                        '''
+                    }
+
+                    // script {
+
+
+                    //     // Initialize git repo only if it's not already a repo
+                    //     sh """
+                    //     if [ ! -d ".git" ]; then
+                    //         git init
+                    //     fi
+                    //     """
+
+                    //     // Set or update remote URL
+                    //     sh """
+                    //     if git remote | grep -q origin; then
+                    //         git remote set-url origin git@github.com:ShehabFahmy/Nexus_Installation.git
+                    //     else
+                    //         git remote add origin git@github.com:ShehabFahmy/Nexus_Installation.git
+                    //     fi
+                    //     """
+
+                    //     // Stage, commit, and push changes
+                    //     sh """
+                    //     git add .
+                    //     git commit -m 'Running Pipeline - ${env.JOB_NAME} - Build #${env.BUILD_NUMBER}'
+                    //     git push origin main
+                    //     """
+                    // }
+                }
             }
         }
 
