@@ -34,10 +34,10 @@ module "public-associations" {
   rtb-id     = module.pb-rtb.id
 }
 
-module "key-pair" {
-  source   = "./Modules/key_pair"
-  key-name = var.key-pair-name
-}
+# module "key-pair" {
+#   source   = "./Modules/key_pair"
+#   key-name = var.key-pair-name
+# }
 
 module "secgrp" {
   source      = "./Modules/security_group"
@@ -60,7 +60,7 @@ module "ec2" {
   instance-type          = var.instance-type
   subnet-id              = module.pb-subnet.id
   secgrp-id              = module.secgrp.id
-  key-name               = module.key-pair.key-name
+  key-name               = var.key-pair-name
   user-data              = <<-EOF
     #!/bin/bash
     apt-get update

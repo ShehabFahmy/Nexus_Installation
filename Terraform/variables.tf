@@ -24,7 +24,7 @@ variable "instance-ami" {
 
 variable "key-pair-name" {
   type = string
-  default = "nexus-task-key-pair"
+  default = "my-rsa-key"   # nexus-task-key-pair
 }
 
 variable "inventory-file-name" {

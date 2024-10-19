@@ -7,23 +7,26 @@ pipeline {
         JENKINS_API_TOKEN = '11bba78624db4fc3239c1a1752d5db839f'    // Jenkins API token
         NODE_NAME = 'ansible-and-nexus-agent'     // Name of the agent to create
         SSH_CRED_ID = 'my-rsa-key'                // SSH credential ID
-        REMOTE_FS = '/home/ubuntu'                // Remote file system for agent
+        REMOTE_FS = '/home/ubuntu/jenkins_agent'  // Remote file system for agent
         JAVA_PATH = '/usr/bin/java'               // Path to Java on the EC2 instance
-        PUBLIC_IP = ''  // This will be populated by Terraform output
     }
     stages {
-        stage('Launch Ansible-and-Nexus Agent'){
+        stage('Launch Ansible-and-Nexus Agent') {
             steps {
                 // In the terraform directory
                 dir('/home/Installing-Nexus-using-Jenkins-Ansible-and-Terraform/Terraform') {
                     // Use Terraform to create the AWS infrastructure
-                    sh 'terraform init'
-                    sh 'terraform apply -auto-approve'
+                    script {
+                        sh 'terraform init'
+                        sh 'terraform apply -auto-approve'
+
+                        // Capture the public IP of the EC2 instance
+                        env.PUBLIC_IP = sh(script: "terraform output -raw ec2-public-ip", returnStdout: true).trim()
+
+                        // Print the captured public IP
+                        echo "The public IP of the EC2 instance is: ${env.PUBLIC_IP}"
+                    }
                 }
-            }
-            script {
-                // Capture the public IP of the EC2 instance
-                env.PUBLIC_IP = sh(script: "terraform output -raw ec2-public-ip", returnStdout: true).trim()
             }
         }
         
@@ -55,10 +58,16 @@ pipeline {
         stage('Configure EC2 as Jenkins Agent via CLI') {
             steps {
                 script {
+                    // Check if the node exists and delete it if it does (since the host/IP of agent changes with the instance)
+                    sh """
+                        java -jar ${JENKINS_CLI_JAR} -s ${JENKINS_URL} -auth ${JENKINS_USER}:${JENKINS_API_TOKEN} get-node ${NODE_NAME} > /dev/null 2>&1 && \
+                        java -jar ${JENKINS_CLI_JAR} -s ${JENKINS_URL} -auth ${JENKINS_USER}:${JENKINS_API_TOKEN} delete-node ${NODE_NAME} || echo "Node does not exist."
+                    """
+
                     // Download Jenkins CLI
-                    sh 'wget ${JENKINS_URL}/jnlpJars/${JENKINS_CLI_JAR}'
+                    sh 'curl -O ${JENKINS_URL}/jnlpJars/${JENKINS_CLI_JAR}'
                     
-                    // Add the EC2 instance as a new agent using the public IP
+                    // Add the EC2 instance as a new agent using the public IP                        
                     sh """
                         java -jar ${JENKINS_CLI_JAR} -s ${JENKINS_URL} -auth ${JENKINS_USER}:${JENKINS_API_TOKEN} create-node ${NODE_NAME} <<EOF
                         <slave>
@@ -68,7 +77,7 @@ pipeline {
                             <numExecutors>1</numExecutors>
                             <label>ansible-and-nexus-agent</label>
                             <mode>NORMAL</mode>
-                            <retentionStrategy class="hudson.slaves.RetentionStrategy$Always"/>
+                            <retentionStrategy class="hudson.slaves.RetentionStrategy\$Always"/>
                             <launcher class="hudson.plugins.sshslaves.SSHLauncher">
                                 <host>${PUBLIC_IP}</host>
                                 <port>22</port>
@@ -76,6 +85,7 @@ pipeline {
                                 <javaPath>${JAVA_PATH}</javaPath>
                                 <launchTimeoutSeconds>60</launchTimeoutSeconds>
                                 <maxNumRetries>5</maxNumRetries>
+                                <sshHostKeyVerificationStrategy class="hudson.plugins.sshslaves.verifiers.NonVerifyingKeyVerificationStrategy"/>  <!-- Non-verifying strategy -->
                             </launcher>
                             <nodeProperties/>
                         </slave>
