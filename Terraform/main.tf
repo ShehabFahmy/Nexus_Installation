@@ -63,6 +63,7 @@ module "ec2" {
   key-name               = module.key-pair.key-name
   user-data              = <<-EOF
     #!/bin/bash
-    echo "EC2 instance launched successfully!" > /home/ec2-user/logs.txt
+    apt-get update
+    apt-get install -y openjdk-11-jre
   EOF
 }

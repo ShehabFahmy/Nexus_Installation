@@ -3,6 +3,11 @@ resource "local_file" "inventory-file" {
   filename = "${path.module}/../Ansible/${var.inventory-file-name}"
 }
 
+output "ec2-public-ip" {
+  value = module.ec2.public-ip
+  description = "Environment variable for Jenkins to use in slave configuration."
+}
+
 resource "null_resource" "ansible-cfg-creation" {
   provisioner "local-exec" {
     command = <<-EOF

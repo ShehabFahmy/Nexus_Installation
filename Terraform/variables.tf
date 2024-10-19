@@ -19,7 +19,7 @@ variable "instance-type" {
 
 variable "instance-ami" {
   type    = string
-  default = "ami-066784287e358dad1"
+  default = "ami-0866a3c8686eaeeba"   # ami-066784287e358dad1
 }
 
 variable "key-pair-name" {
