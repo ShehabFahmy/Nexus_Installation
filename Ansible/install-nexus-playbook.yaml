@@ -1,0 +1,81 @@
+---
+- name: Install Nexus
+  hosts: local
+  become: yes
+  user: ubuntu  # Since it's an Ubuntu-based EC2 instance
+  tasks:
+    - name: Create nexus user with specific configurations
+      user:
+        name: nexus
+        state: present
+        shell: /bin/bash
+        groups: sudo
+        home: "/home/nexus"
+        password: ''  # Set an empty password
+
+    - name: Ensure /opt directory exists
+      file:
+        path: /opt
+        state: directory
+        mode: '0755'
+
+    - name: Download Nexus tar file
+      get_url:
+        url: https://download.sonatype.com/nexus/3/nexus-3.73.0-12-unix.tar.gz
+        dest: /opt/nexus-3.73.0-12-unix.tar.gz
+        mode: '0644'
+
+    - name: Extract Nexus tar file in /opt
+      ansible.builtin.unarchive:
+        src: /opt/nexus-3.73.0-12-unix.tar.gz
+        dest: /opt
+        remote_src: yes
+
+    - name: Rename extracted directory to nexus
+      command: mv /opt/nexus-3.73.0-12 /opt/nexus
+
+    - name: Change ownership of /opt/nexus to nexus user
+      file:
+        path: /opt/nexus
+        owner: nexus
+        group: nexus
+        recurse: yes
+    
+    - name: Change ownership of /opt/sonatype-work
+      file:
+        path: /opt/sonatype-work
+        owner: nexus
+        group: nexus
+        recurse: yes
+        
+    - name: Add run_as_user="nexus" to /opt/nexus/bin/nexus.rc
+      copy:
+        content: 'run_as_user="nexus"'
+        dest: /opt/nexus/bin/nexus.rc
+        mode: '0644'
+
+    - name: Deploy Nexus service file from template
+      ansible.builtin.template:
+        src: nexus.service.j2
+        dest: /etc/systemd/system/nexus.service
+
+    - name: Reload systemd to apply the new service
+      ansible.builtin.systemd:
+        daemon_reload: yes
+
+    - name: Start Nexus service
+      ansible.builtin.systemd:
+        name: nexus
+        state: started
+
+    - name: Enable Nexus service to start on boot
+      ansible.builtin.systemd:
+        name: nexus
+        enabled: yes
+
+    - name: Wait for Nexus to be up and running on port 8081
+      ansible.builtin.wait_for:
+        port: 8081
+        delay: 10  # Wait for 10 seconds before checking the condition, after this delay period, Ansible will start checking the condition every few seconds until either the condition is met (Nexus is running) or the timeout period expires.
+        timeout: 300  # Maximum time to wait for Nexus to be up (5 minutes)
+        state: started
