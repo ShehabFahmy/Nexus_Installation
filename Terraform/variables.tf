@@ -12,9 +12,14 @@ data "http" "my-public-ip" {
   url = "http://checkip.amazonaws.com"
 }
 
+variable "instance-name" {
+  type    = string
+  default = "ansible-and-nexus-agent"
+}
+
 variable "instance-type" {
   type    = string
-  default = "t2.micro"
+  default = "t3.medium"
 }
 
 variable "instance-ami" {
@@ -24,10 +29,15 @@ variable "instance-ami" {
 
 variable "key-pair-name" {
   type = string
-  default = "my-rsa-key"   # nexus-task-key-pair
+  default = "nexus-task-aws-pvkey"
 }
 
-variable "inventory-file-name" {
+variable "ansible-inventory-file-name" {
   type = string
   default = "inventory.ini"
+}
+
+variable "ansible-cfg-file-name" {
+  type = string
+  default = "ansible.cfg"
 }

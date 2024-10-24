@@ -34,10 +34,10 @@ module "public-associations" {
   rtb-id     = module.pb-rtb.id
 }
 
-# module "key-pair" {
-#   source   = "./Modules/key_pair"
-#   key-name = var.key-pair-name
-# }
+module "key-pair" {
+  source   = "./Modules/key_pair"
+  key-name = var.key-pair-name
+}
 
 module "secgrp" {
   source      = "./Modules/security_group"
@@ -45,9 +45,10 @@ module "secgrp" {
   created-by  = var.me
   vpc-id      = module.vpc.id
   ingress-data = [
-    # VERY IMPORTANT: You have to allow SSH for the remote-exec connection and the cidr block should only be your local machine's public IP.
+    # Allow port 22 for SSH connection from your IP, and port 8081 for Nexus access.
     #   To get the public IP we will use a data block at `variables.tf` that executes a URL of an API that replies with the IP.
-    { from_port = 22, to_port = 22, protocol = "tcp", cidr_blocks = ["${trimspace(data.http.my-public-ip.response_body)}/32"], security_groups = [] }
+    { from_port = 22, to_port = 22, protocol = "tcp", cidr_blocks = ["${trimspace(data.http.my-public-ip.response_body)}/32"], security_groups = [] },
+    { from_port = 8081, to_port = 8081, protocol = "tcp", cidr_blocks = ["0.0.0.0/0"], security_groups = [] }
   ]
   egress-data = [{ from_port = 0, to_port = 0, protocol = "-1", cidr_blocks = ["0.0.0.0/0"] }]
 }
@@ -56,7 +57,7 @@ module "ec2" {
   source                 = "./Modules/aws_linux_ec2_user_data"
   created-by             = var.me
   aws-linux-instance-ami = var.instance-ami
-  instance-name          = "ansible-and-nexus-agent"
+  instance-name          = var.instance-name
   instance-type          = var.instance-type
   subnet-id              = module.pb-subnet.id
   secgrp-id              = module.secgrp.id
