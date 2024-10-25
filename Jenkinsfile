@@ -100,7 +100,7 @@ ${privateKey}
                             
                             export GIT_SSH_COMMAND="ssh -i ${SSH_KEY} -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
 
-                            # Push the changes using the custom SSH command
+                            # Push the changes
                             git pull --rebase
                             git push ${GIT_REPO_SSH_LINK} main
                         '''
@@ -177,8 +177,8 @@ ${privateKey}
             steps {
                 dir('/home/Installing-Nexus-using-Jenkins-Ansible-and-Terraform/Terraform') {
                     sh """
-                        terraform destroy -target=local_file.ansible-inventory-file-creation
-                        terraform destroy -target=local_file.ansible-cfg-file-creation
+                        terraform destroy -target=local_file.ansible-inventory-file-creation -auto-approve
+                        terraform destroy -target=local_file.ansible-cfg-file-creation -auto-approve
                     """
                 }
                 dir('/home/Installing-Nexus-using-Jenkins-Ansible-and-Terraform') {
