@@ -173,8 +173,14 @@ ${privateKey}
             }
         }
 
-        stage('Remove Ansible\'s Configuration from Remote Repo') {
+        stage('Reset GitHub Repository: Remove Ansible\'s Configuration Files') {
             steps {
+                dir('/home/Installing-Nexus-using-Jenkins-Ansible-and-Terraform/Terraform') {
+                    sh """
+                        terraform destroy -target=local_file.ansible-inventory-file-creation
+                        terraform destroy -target=local_file.ansible-cfg-file-creation
+                    """
+                }
                 dir('/home/Installing-Nexus-using-Jenkins-Ansible-and-Terraform') {
                     withCredentials([sshUserPrivateKey(credentialsId: "my-ssh-key", keyFileVariable: 'SSH_KEY')]) {
                         // Configure the directory as a safe directory
@@ -185,8 +191,6 @@ ${privateKey}
                         sh 'git config --global user.name "${GIT_USER_NAME}"'
 
                         sh '''
-                            sudo rm Ansible/*.ini
-                            sudo rm Ansible/*.cfg
                             git add Ansible/
                             git commit -m "Pipeline Succeeded - ${JOB_NAME} - Build #${BUILD_NUMBER}"
                             
