@@ -7,8 +7,6 @@ pipeline {
         GIT_REPO_HTTPS_LINK = 'https://github.com/ShehabFahmy/Nexus_Installation.git'
         JENKINS_URL = 'http://localhost:8080'
         JENKINS_CLI_JAR = 'jenkins-cli.jar'
-        // JENKINS_USER = 'sheko'          // Jenkins username
-        // JENKINS_API_TOKEN = '11bba78624db4fc3239c1a1752d5db839f'    // Jenkins API token
         JENKINS_API_URL = '${JENKINS_URL}/credentials/store/system/domain/_/credential'
         NODE_NAME = 'ansible-and-nexus-agent'     // Name of the agent to create
         SSH_CRED_ID = 'nexus-task-aws-pvkey'      // SSH private key name of the AWS EC2 instance
@@ -165,11 +163,38 @@ ${privateKey}
                     sudo apt install ansible -y
                     sudo apt install git
                     """
-                    dir('/home/ubuntu'){
+                    dir('/home/ubuntu/jenkins_agent'){
                         sh "git clone ${GIT_REPO_HTTPS_LINK}"
                     }
-                    dir('/home/ubuntu/Nexus_Installation/Ansible') {
+                    dir('/home/ubuntu/jenkins_agent/Nexus_Installation/Ansible') {
                         sh 'ansible-playbook install-nexus-playbook.yaml'
+                    }
+                }
+            }
+        }
+
+        stage('Remove Ansible\'s Configuration from Remote Repo') {
+            steps {
+                dir('/home/Installing-Nexus-using-Jenkins-Ansible-and-Terraform') {
+                    withCredentials([sshUserPrivateKey(credentialsId: "my-ssh-key", keyFileVariable: 'SSH_KEY')]) {
+                        // Configure the directory as a safe directory
+                        sh 'git config --global --add safe.directory /home/Installing-Nexus-using-Jenkins-Ansible-and-Terraform'
+
+                        // Set user name and email for Git
+                        sh 'git config --global user.email "${GIT_USER_EMAIL}"'
+                        sh 'git config --global user.name "${GIT_USER_NAME}"'
+
+                        sh '''
+                            sudo rm Ansible/*.ini
+                            sudo rm Ansible/*.cfg
+                            git add Ansible/
+                            git commit -m "Pipeline Succeeded - ${JOB_NAME} - Build #${BUILD_NUMBER}"
+                            
+                            export GIT_SSH_COMMAND="ssh -i ${SSH_KEY} -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
+
+                            # Push the changes using the custom SSH command
+                            git push ${GIT_REPO_SSH_LINK} main
+                        '''
                     }
                 }
             }
