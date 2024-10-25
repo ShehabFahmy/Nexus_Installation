@@ -12,3 +12,9 @@ In this repo, we will go for the long way to practice more on using Jenkins.
 5. Install Ansible and Git, pull the configuration files and run the Ansible playbook locally (localhost).
 - On the master agent:
 6. Reset the GitHub repo by destroying the Terraform `local_file` resources and pushing the changes to the repo.
+
+---
+
+![Image](ansible-play-recap.png)
+![Image](pipeline-success.png)
+![Image](nexus-on-ec2.png)
